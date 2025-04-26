@@ -22,12 +22,17 @@ jobs:
         id: check_composer_changes
         run: |
           git fetch origin
-          git diff --quiet origin/main -- composer.json
-        continue-on-error: true  # Prevents failure in case composer.json has no changes
+          if git diff --quiet origin/main -- composer.json; then
+            echo "No changes in composer.json"
+            echo "composer_json_changed=false" >> $GITHUB_ENV
+          else
+            echo "composer.json has changed"
+            echo "composer_json_changed=true" >> $GITHUB_ENV
+          fi
 
       # Step 3: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
-        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        if: env.composer_json_changed == 'true'
         working-directory: api  # Change into your Laravel API directory
         run: |
           echo "composer.json has changed. Running composer install..."
@@ -67,14 +72,14 @@ jobs:
 
       # Step 7: Zip the vendor directory before upload (only if changes detected in composer.json)
       - name: 🗜️ Zip the Vendor Directory
-        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        if: env.composer_json_changed == 'true'
         run: |
           cd api
           zip -r vendor.zip vendor  # Zip the vendor directory
 
       # Step 8: Upload Vendor Directory (Zipped) (only if composer.json changes)
       - name: 🚀 Upload Vendor Directory (Zipped)
-        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        if: env.composer_json_changed == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_HOST }}
@@ -86,7 +91,7 @@ jobs:
 
       # Step 9: Unzip Vendor Directory on Server
       - name: 🗜️ Unzip Vendor Directory on Server
-        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        if: env.composer_json_changed == 'true'
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd ${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
 
