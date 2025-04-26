@@ -1,0 +1,85 @@
+name: 🚀 Pipeline | Deploy Code on main Server
+
+on:
+  push:
+    branches:
+      - main  # Only run on pushes to the main branch
+
+jobs:
+  deploy:
+    name: 🎉 Deploy Frontend and Backend
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner for this job
+
+    steps:
+      # Step 1: Checkout the latest code from the repository
+      - name: 🚚 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history to ensure no issues with comparisons
+
+      # Step 2: Check for changes in composer.json file
+      - name: 🔍 Check for changes in composer.json
+        id: check_composer_changes
+        run: |
+          git fetch origin
+          git diff --quiet origin/main -- composer.json || echo "composer.json has changed"
+
+      # Step 3: Install PHP Dependencies if composer.json has changed
+      - name: 🛠 Install PHP Dependencies
+        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        working-directory: api  # Change into your Laravel API directory
+        run: |
+          echo "composer.json has changed. Running composer install..."
+          composer install --no-dev --optimize-autoloader
+
+      # Step 4: Install and build frontend (React) application
+      - name: 🚀 Install Frontend Dependencies and Build
+        working-directory: frontend  # Change into your React app directory
+        run: |
+          npm install
+          npm run build
+
+      # Step 5: Export ENV Variables
+      - name: 🛠 Export ENV Variables
+        run: |
+          while IFS='=' read -r key value; do
+            if [[ ! "$key" =~ ^# && -n "$key" ]]; then
+              echo "$key=$value" >> $GITHUB_ENV
+            fi
+          done < .env
+
+      # Step 6: Deploy Frontend via FTP
+      - name: 🚀 Deploy Frontend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "frontend/dist/"
+          server-dir: "public_html/${{ secrets.BASE_URL }}/"
+          dangerous-clean-slate: false
+
+      # Step 7: Zip the vendor directory before upload
+      - name: 🗜️ Zip the Vendor Directory
+        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        run: |
+          cd api
+          zip -r vendor.zip vendor  # Zip the vendor directory
+
+      # Step 8: Upload Vendor Directory (zipped)
+      - name: 🚀 Upload Vendor Directory (Zipped)
+        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "api/vendor.zip"  # The zipped vendor directory
+          server-dir: "public_html/${{ secrets.BASE_URL }}/api/vendor.zip"
+          dangerous-clean-slate: false
+
+      # Step 9: Unzip the vendor.zip file on the server
+      - name: 🗜️ Unzip Vendor Directory on Server
+        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        run: |
+          ssh ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd public_html/${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
