@@ -71,7 +71,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "frontend/dist/"
-          server-dir: "public_html/${{ secrets.BASE_URL }}/"
+          server-dir: "${{ secrets.BASE_URL }}/"
           dangerous-clean-slate: false
 
       # Step 7: Zip the vendor directory before upload
@@ -90,11 +90,11 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "api/vendor.zip"  # The zipped vendor directory
-          server-dir: "public_html/${{ secrets.BASE_URL }}/api/vendor.zip"
+          server-dir: "${{ secrets.BASE_URL }}/api/vendor.zip"
           dangerous-clean-slate: false
 
       # Step 9: Unzip Vendor Directory on Server
       - name: 🗜️ Unzip Vendor Directory on Server
         if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
         run: |
-          ssh ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd public_html/${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
+          ssh ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd ${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
