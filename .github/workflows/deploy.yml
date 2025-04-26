@@ -22,7 +22,7 @@ jobs:
         id: check_composer_changes
         run: |
           git fetch origin
-          git diff --quiet origin/main -- composer.json
+          git diff --quiet origin/main -- composer.json || echo "composer.json has changed" > result.txt
         continue-on-error: true  # Prevents failure in case composer.json has no changes
 
       # Step 3: Install PHP Dependencies if composer.json has changed
@@ -40,14 +40,6 @@ jobs:
           npm install
           npm run build
 
-      # # Step 5: Export ENV Variables
-      # - name: 🛠 Export ENV Variables
-      #   run: |
-      #     while IFS='=' read -r key value; do
-      #       if [[ ! "$key" =~ ^# && -n "$key" ]]; then
-      #         echo "$key=$value" >> $GITHUB_ENV
-      #       fi
-      #     done < .env
       # Step 5: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
@@ -62,7 +54,6 @@ jobs:
             echo ".env file not found!"
           fi
 
-
       # Step 6: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -71,7 +62,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "frontend/dist/"
-          server-dir: "${{ secrets.BASE_URL }}/"
+          server-dir: "public_html/${{ secrets.BASE_URL }}/"  # Ensure correct path for frontend
           dangerous-clean-slate: false
 
       # Step 7: Zip the vendor directory before upload
@@ -90,11 +81,24 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "api/vendor.zip"  # The zipped vendor directory
-          server-dir: "${{ secrets.BASE_URL }}/api/vendor.zip"
+          server-dir: "public_html/${{ secrets.BASE_URL }}/api/vendor.zip"  # Ensure correct API path
           dangerous-clean-slate: false
 
       # Step 9: Unzip Vendor Directory on Server
       - name: 🗜️ Unzip Vendor Directory on Server
         if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
         run: |
-          ssh ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd ${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd public_html/${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
+
+      # Step 10: Upload API Code (excluding vendor)
+      - name: 🚀 Upload API Code (excluding vendor)
+        if: steps.check_composer_changes.outputs.composer_json_changed == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "api"  # Local API directory (excluding vendor)
+          server-dir: "public_html/${{ secrets.BASE_URL }}/api/"  # Ensure correct API path on server
+          dangerous-clean-slate: false
+          excludes: "vendor/*"  # Exclude the vendor directory since it's already uploaded
