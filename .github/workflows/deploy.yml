@@ -40,14 +40,28 @@ jobs:
           npm install
           npm run build
 
+      # # Step 5: Export ENV Variables
+      # - name: 🛠 Export ENV Variables
+      #   run: |
+      #     while IFS='=' read -r key value; do
+      #       if [[ ! "$key" =~ ^# && -n "$key" ]]; then
+      #         echo "$key=$value" >> $GITHUB_ENV
+      #       fi
+      #     done < .env
       # Step 5: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
-          while IFS='=' read -r key value; do
-            if [[ ! "$key" =~ ^# && -n "$key" ]]; then
-              echo "$key=$value" >> $GITHUB_ENV
-            fi
-          done < .env
+          if [ -f ".env" ]; then
+            echo "Found .env file, reading variables..."
+            while IFS='=' read -r key value; do
+              if [[ ! "$key" =~ ^# && -n "$key" ]]; then
+                echo "$key=$value" >> $GITHUB_ENV
+              fi
+            done < .env
+          else
+            echo ".env file not found!"
+          fi
+
 
       # Step 6: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
