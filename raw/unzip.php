@@ -46,7 +46,7 @@ if (file_exists($zip_file)) {
         
         // Optionally remove the zip file after extraction
         unlink($zip_file);
-    } else {
+    } else { 
         echo 'Failed to open zip file!';
     }
 } else {
