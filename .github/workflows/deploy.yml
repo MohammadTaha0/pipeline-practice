@@ -63,13 +63,12 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "./"  # Local directory containing unzip.php
+          local-dir: "./"  # Local directory 
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
-          include: |
-            unzip.php  # ONLY include unzip.php
           exclude: |
-            **/*  # Exclude everything else
+            **/*
+            !unzip.php  # Only include unzip.php file (the ! means "don't exclude")
 
       # Step 5: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
