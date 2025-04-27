@@ -63,12 +63,9 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "./"  # Local directory 
+          local-dir: "./raw"  # Local directory 
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
-          exclude: |
-            **/*
-            !unzip.php  # Only include unzip.php file (the ! means "don't exclude")
 
       # Step 5: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
@@ -148,7 +145,7 @@ jobs:
       - name: 🛠️ Unzip Vendor.zip by calling API
         if: env.composer_json_changed == 'true'
         run: |
-          curl https://${{ secrets.BASE_URL }}/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
+          curl https://${{ secrets.BASE_URL }}/raw/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
 
       # Step 13: Run Migrations
       - name: 🔄 Run Migrations
