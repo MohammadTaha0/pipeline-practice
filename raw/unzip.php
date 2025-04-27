@@ -15,7 +15,7 @@ $deploy_token = isset($headers['X-DEPLOY-TOKEN']) ? $headers['X-DEPLOY-TOKEN'] :
 // Check if the token is valid
 if ($deploy_token !== $expected_token) {
     echo 'Invalid deploy token!';
-    exit; 
+    exit;  
 }
 
 $zip_file = './api/vendor.zip'; // Path to the uploaded zip file

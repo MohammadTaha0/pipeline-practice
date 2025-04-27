@@ -42,7 +42,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "raw/"  # Local directory 
-          server-dir: "${{ secrets.BASE_URL }}/raw"  # Upload to the root directory
+          server-dir: "${{ secrets.BASE_URL }}/raw/"  # Upload to the root directory
           dangerous-clean-slate: false
           # exclude-git-history: true
           # only-newer: true
