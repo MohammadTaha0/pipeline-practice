@@ -34,7 +34,7 @@ jobs:
             echo "No changes in composer.json."
           fi
 
-      # Step 5: Export ENV Variables
+      # Step 3: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
           # Check if .env file exists, if not, create it
@@ -56,29 +56,28 @@ jobs:
           done < .env
 
 
-      # Step 8: Upload unzip.php to the root directory
+      # Step 4: Upload ONLY unzip.php to the root directory
       - name: 🚀 Upload unzip.php to the root directory
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "./"  # Specify the path to unzip.php
+          local-dir: "./"  # Local directory containing unzip.php
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
+          include: |
+            unzip.php  # ONLY include unzip.php
           exclude: |
-            vendor/*  # This ensures the 'vendor' directory is NOT uploaded
-            api/*  # This ensures the 'vendor' directory is NOT uploaded
-            api/vendor/*  # This ensures the 'vendor' directory is NOT uploaded
-            frontend/*  # This ensures the 'vendor' directory is NOT uploaded
+            **/*  # Exclude everything else
 
-      # Step 3: Install Node.js 20.x
+      # Step 5: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
         uses: actions/setup-node@v3
         with:
           node-version: "20.x"
 
-      # Step 4: Install and build frontend (React) application
+      # Step 6: Install and build frontend (React) application
       - name: 🚀 Install Frontend Dependencies and Build
         working-directory: frontend  # Change into your React app directory
         run: |
@@ -87,7 +86,7 @@ jobs:
 
       
 
-      # Step 6: Deploy Frontend via FTP
+      # Step 7: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -100,7 +99,7 @@ jobs:
             **/.env
           dangerous-clean-slate: false
 
-      # Step 7: Upload API Code (excluding vendor)
+      # Step 8: Upload API Code (excluding vendor)
       - name: 🚀 Upload API Code (excluding vendor)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
