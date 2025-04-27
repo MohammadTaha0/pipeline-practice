@@ -35,7 +35,7 @@ if (file_exists($zip_file)) {
                 echo "Directory created successfully.<br>";
             } else {
                 echo "Failed to create directory.<br>";
-            }
+            } 
         }
 
         // Extract files to the 'vendor/' folder

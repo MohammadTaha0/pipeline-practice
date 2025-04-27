@@ -34,36 +34,36 @@ jobs:
             echo "No changes in composer.json."
           fi
 
-      # Step 3: Upload ONLY unzip.php to the root directory
-      - name: 🚀 Upload unzip.php to the root directory
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "raw/"  # Local directory 
-          server-dir: "${{ secrets.BASE_URL }}/raw/"  # Upload to the root directory
-          dangerous-clean-slate: false
-          # exclude-git-history: true
-          # only-newer: true
-          # state-name: ".ftp-deploy-sync-state-raw.json"
-
-      # Step 4: Export ENV Variables
-      - name: 🛠 Export ENV Variables to raw directory
+      # Step 3: Prepare the raw directory with .env and unzip.php
+      - name: 🛠 Prepare raw directory with .env and unzip.php
         run: |
           # Ensure raw directory exists
           mkdir -p raw
+          
+          # Create unzip.php in raw directory
+          cat > raw/unzip.php << 'EOF'
+<?php
+// Simple unzip script with token authentication
+if (!isset($_SERVER['HTTP_X_DEPLOY_TOKEN']) || $_SERVER['HTTP_X_DEPLOY_TOKEN'] !== getenv('DEPLOY_TOKEN')) {
+    http_response_code(403);
+    echo "Unauthorized";
+    exit;
+}
 
-          # Check if raw/.env file exists, if not, create it
-          if [ ! -f "raw/.env" ]; then
-            echo "raw/.env file not found! Creating raw/.env file..."
-            touch raw/.env  # Create an empty .env file in raw/
-          fi
+$zip = new ZipArchive;
+$res = $zip->open(__DIR__ . '/../api/vendor.zip');
+if ($res === TRUE) {
+    $zip->extractTo(__DIR__ . '/../api/');
+    $zip->close();
+    echo "Vendor directory extracted successfully";
+} else {
+    echo "Failed to extract vendor directory";
+}
+EOF
 
-          # Add DEPLOY_TOKEN to raw/.env
-          echo "Adding DEPLOY_TOKEN to raw/.env file..."
-          echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" >> raw/.env
-
+          # Create .env file in raw directory with DEPLOY_TOKEN
+          echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" > raw/.env
+          
           # Export environment variables from raw/.env to GitHub Actions environment
           echo "Exporting environment variables from raw/.env file..."
           while IFS='=' read -r key value; do
@@ -72,8 +72,16 @@ jobs:
             fi
           done < raw/.env
 
-
-      
+      # Step 4: Upload unzip.php and .env to the raw directory
+      - name: 🚀 Upload files to raw directory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "raw/"  # Local directory with trailing slash
+          server-dir: "${{ secrets.BASE_URL }}/raw/"  # Upload to raw directory
+          dangerous-clean-slate: false
 
       # Step 5: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
@@ -87,8 +95,6 @@ jobs:
         run: |
           npm install
           npm run build
-
-      
 
       # Step 7: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
@@ -118,13 +124,11 @@ jobs:
             .env  # You can also exclude .env if needed
             unzip.php  # Exclude unzip.php from API upload
 
-      
-
       # Step 9: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
         working-directory: api  # Change into your Laravel API directory
         run: |
-          echo "composer.json has changed. Running composer install..."
+          echo "Installing PHP dependencies..."
           composer install --no-dev --optimize-autoloader
 
       # Step 10: Zip the vendor directory before upload (only if changes detected in composer.json)
@@ -153,7 +157,7 @@ jobs:
       - name: 🛠️ Unzip Vendor.zip by calling API
         if: env.composer_json_changed == 'true'
         run: |
-          curl https://${{ secrets.BASE_URL }}/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
+          curl https://${{ secrets.BASE_URL }}/raw/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
 
       # Step 13: Run Migrations
       - name: 🔄 Run Migrations
