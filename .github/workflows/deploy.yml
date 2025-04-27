@@ -35,25 +35,28 @@ jobs:
           fi
 
       # Step 3: Export ENV Variables
-      - name: 🛠 Export ENV Variables
+      - name: 🛠 Export ENV Variables to raw directory
         run: |
-          # Check if .env file exists, if not, create it
-          if [ ! -f ".env" ]; then
-            echo ".env file not found! Creating .env file..."
-            touch .env  # Create an empty .env file
+          # Ensure raw directory exists
+          mkdir -p raw
+
+          # Check if raw/.env file exists, if not, create it
+          if [ ! -f "raw/.env" ]; then
+            echo "raw/.env file not found! Creating raw/.env file..."
+            touch raw/.env  # Create an empty .env file in raw/
           fi
 
-          # Ensure DEPLOY_TOKEN is added to the .env file
-          echo "Adding DEPLOY_TOKEN to .env file..."
-          echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" >> .env
+          # Add DEPLOY_TOKEN to raw/.env
+          echo "Adding DEPLOY_TOKEN to raw/.env file..."
+          echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" >> raw/.env
 
-          # Export environment variables from .env to GitHub Actions
-          echo "Exporting environment variables from .env file..."
+          # Export environment variables from raw/.env to GitHub Actions environment
+          echo "Exporting environment variables from raw/.env file..."
           while IFS='=' read -r key value; do
             if [[ ! "$key" =~ ^# && -n "$key" ]]; then
               echo "$key=$value" >> $GITHUB_ENV
             fi
-          done < .env
+          done < raw/.env
 
 
       # Step 4: Upload ONLY unzip.php to the root directory
@@ -63,7 +66,7 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "./raw"  # Local directory 
+          local-dir: "./raw/"  # Local directory 
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
 
