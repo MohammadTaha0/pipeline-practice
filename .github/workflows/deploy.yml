@@ -106,7 +106,7 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "./unzip.php"  # Specify the path to unzip.php
+          local-dir: "./"  # Specify the path to unzip.php
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
 
