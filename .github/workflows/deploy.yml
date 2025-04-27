@@ -50,16 +50,26 @@ jobs:
       # Step 5: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
-          if [ -f ".env" ]; then
-            echo "Found .env file, reading variables..."
-            while IFS='=' read -r key value; do
-              if [[ ! "$key" =~ ^# && -n "$key" ]]; then
-                echo "$key=$value" >> $GITHUB_ENV
-              fi
-            done < .env
+          # Check if .env file exists, if not, create it
+          if [ ! -f ".env" ]; then
+            echo ".env file not found! Creating .env file..."
+            touch .env  # Create an empty .env file
           else
-            echo ".env file not found!"
+            echo "Found .env file, reading variables..."
           fi
+
+          # Add DEPLOY_TOKEN to .env file if it's not already there
+          if ! grep -q "DEPLOY_TOKEN=" .env; then
+            echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" >> .env
+          fi
+
+          # Export environment variables from .env to GitHub Actions
+          while IFS='=' read -r key value; do
+            if [[ ! "$key" =~ ^# && -n "$key" ]]; then
+              echo "$key=$value" >> $GITHUB_ENV
+            fi
+          done < .env
+
 
       # Step 6: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
@@ -87,22 +97,34 @@ jobs:
           exclude: |
             vendor/*  # This ensures the 'vendor' directory is NOT uploaded
             .env  # You can also exclude .env if needed
+            unzip.php  # Exclude unzip.php from API upload
 
-      # Step 8: Install PHP Dependencies if composer.json has changed
+      # Step 8: Upload unzip.php to the root directory
+      - name: 🚀 Upload unzip.php to the root directory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "./unzip.php"  # Specify the path to unzip.php
+          server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
+          dangerous-clean-slate: false
+
+      # Step 9: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
         working-directory: api  # Change into your Laravel API directory
         run: |
           echo "composer.json has changed. Running composer install..."
           composer install --no-dev --optimize-autoloader
 
-      # Step 9: Zip the vendor directory before upload (only if changes detected in composer.json)
+      # Step 10: Zip the vendor directory before upload (only if changes detected in composer.json)
       - name: 🗜️ Zip the Vendor Directory
         if: env.composer_json_changed == 'true'
         run: |
           cd api
           zip -r vendor.zip vendor  # Zip the vendor directory
 
-      # Step 10: Upload Vendor Directory (Zipped) (only if composer.json changes)
+      # Step 11: Upload Vendor Directory (Zipped) (only if composer.json changes)
       - name: 🚀 Upload Vendor Directory (Zipped)
         if: env.composer_json_changed == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -117,13 +139,13 @@ jobs:
             !vendor.zip
           dangerous-clean-slate: false
 
-      # Step 11: Call unzip.php to unzip vendor.zip
+      # Step 12: Call unzip.php to unzip vendor.zip
       - name: 🛠️ Unzip Vendor.zip by calling API
         if: env.composer_json_changed == 'true'
         run: |
-          curl https://${{ secrets.BASE_URL }}/unzip.php
+          curl https://${{ secrets.BASE_URL }}/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
 
-      # Step 12: Run Migrations
+      # Step 13: Run Migrations
       - name: 🔄 Run Migrations
         run: |
           curl -X GET "${{ secrets.BASE_URL }}/api/run-migrations" -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
