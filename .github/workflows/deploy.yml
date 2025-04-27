@@ -151,7 +151,7 @@ jobs:
       - name: 🛠️ Unzip Vendor.zip by calling API
         if: env.composer_json_changed == 'true'
         run: |
-          curl https://${{ secrets.BASE_URL }}/raw/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
+          curl https://${{ secrets.BASE_URL }}/unzip.php -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
 
       # Step 13: Run Migrations
       - name: 🔄 Run Migrations
