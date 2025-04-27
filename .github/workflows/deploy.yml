@@ -110,7 +110,7 @@ jobs:
           curl https://${{ secrets.BASE_URL }}/unzip.php
 
 
-      # Step 11: Upload API Code (excluding vendor)
+     # Step 10: Upload API Code (excluding vendor)
       - name: 🚀 Upload API Code (excluding vendor)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -121,9 +121,10 @@ jobs:
           server-dir: "${{ secrets.BASE_URL }}/api/"  # Ensure correct API path on server
           dangerous-clean-slate: false
           exclude: |
-            vendor/*
-            .env
-      # Step 12: Run Migrations
+            vendor/*  # Prevent uploading vendor directory
+            .env  # Exclude .env as well (if needed)
+
+      # Step 11: Run Migrations
       - name: 🔄 Run Migrations
         run: |
           curl -X GET "${{ secrets.BASE_URL }}/api/run-migrations" -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
