@@ -17,6 +17,7 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history to ensure no issues with comparisons
 
+      # Step 2: Check for changes in composer.json  
       - name: 🔍 Check for changes in composer.json
         id: check_composer_changes
         run: |
@@ -33,28 +34,20 @@ jobs:
             echo "No changes in composer.json."
           fi
 
-
-      # Step 3: Install PHP Dependencies if composer.json has changed
-      - name: 🛠 Install PHP Dependencies
-        working-directory: api  # Change into your Laravel API directory
-        run: |
-          echo "composer.json has changed. Running composer install..."
-          composer install --no-dev --optimize-autoloader
-      
-      # Step 4: Install Node.js 20.x
+      # Step 3: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
         uses: actions/setup-node@v3
         with:
           node-version: "20.x"
 
-      # Step 5: Install and build frontend (React) application
+      # Step 4: Install and build frontend (React) application
       - name: 🚀 Install Frontend Dependencies and Build
         working-directory: frontend  # Change into your React app directory
         run: |
           npm install
           npm run build
 
-      # Step 6: Export ENV Variables
+      # Step 5: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
           if [ -f ".env" ]; then
@@ -68,7 +61,7 @@ jobs:
             echo ".env file not found!"
           fi
 
-      # Step 7: Deploy Frontend via FTP
+      # Step 6: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -81,14 +74,35 @@ jobs:
             **/.env
           dangerous-clean-slate: false
 
-      # Step 8: Zip the vendor directory before upload (only if changes detected in composer.json)
+      # Step 7: Upload API Code (excluding vendor)
+      - name: 🚀 Upload API Code (excluding vendor)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "api/"  # Ensure this ends with '/'
+          server-dir: "${{ secrets.BASE_URL }}/api/"  # Ensure correct API path on server
+          dangerous-clean-slate: false
+          exclude: |
+            vendor/*  # This ensures the 'vendor' directory is NOT uploaded
+            .env  # You can also exclude .env if needed
+
+      # Step 8: Install PHP Dependencies if composer.json has changed
+      - name: 🛠 Install PHP Dependencies
+        working-directory: api  # Change into your Laravel API directory
+        run: |
+          echo "composer.json has changed. Running composer install..."
+          composer install --no-dev --optimize-autoloader
+
+      # Step 9: Zip the vendor directory before upload (only if changes detected in composer.json)
       - name: 🗜️ Zip the Vendor Directory
         if: env.composer_json_changed == 'true'
         run: |
           cd api
           zip -r vendor.zip vendor  # Zip the vendor directory
 
-      # Step 9: Upload Vendor Directory (Zipped) (only if composer.json changes)
+      # Step 10: Upload Vendor Directory (Zipped) (only if composer.json changes)
       - name: 🚀 Upload Vendor Directory (Zipped)
         if: env.composer_json_changed == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -103,29 +117,13 @@ jobs:
             !vendor.zip
           dangerous-clean-slate: false
 
-      # Step 9: Call unzip.php to unzip vendor.zip
+      # Step 11: Call unzip.php to unzip vendor.zip
       - name: 🛠️ Unzip Vendor.zip by calling API
         if: env.composer_json_changed == 'true'
         run: |
           curl https://${{ secrets.BASE_URL }}/unzip.php
 
-
-     # Step 10: Upload API Code (excluding vendor)
-      - name: 🚀 Upload API Code (excluding vendor)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "api/"  # Ensure this ends with '/'
-          server-dir: "${{ secrets.BASE_URL }}/api/"  # Ensure correct API path on server
-          dangerous-clean-slate: false
-          exclude: |
-            vendor/*  # Prevent uploading vendor directory
-            .env  # Exclude .env as well (if needed)
-
-      # Step 11: Run Migrations
+      # Step 12: Run Migrations
       - name: 🔄 Run Migrations
         run: |
           curl -X GET "${{ secrets.BASE_URL }}/api/run-migrations" -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
-
