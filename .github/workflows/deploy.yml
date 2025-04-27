@@ -69,6 +69,9 @@ jobs:
           local-dir: "raw/"  # Local directory 
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
+          exclude-git-history: true
+          only-newer: true
+          state-name: ".ftp-deploy-sync-state-raw.json"
 
       # Step 5: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
