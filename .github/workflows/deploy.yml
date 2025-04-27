@@ -34,19 +34,6 @@ jobs:
             echo "No changes in composer.json."
           fi
 
-      # Step 3: Install Node.js 20.x
-      - name: 🔧 Setup Node.js 20.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20.x"
-
-      # Step 4: Install and build frontend (React) application
-      - name: 🚀 Install Frontend Dependencies and Build
-        working-directory: frontend  # Change into your React app directory
-        run: |
-          npm install
-          npm run build
-
       # Step 5: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
@@ -69,6 +56,36 @@ jobs:
           done < .env
 
 
+      # Step 8: Upload unzip.php to the root directory
+      - name: 🚀 Upload unzip.php to the root directory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "./"  # Specify the path to unzip.php
+          server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
+          dangerous-clean-slate: false
+          exclude: |
+            vendor/*  # This ensures the 'vendor' directory is NOT uploaded
+            api/*  # This ensures the 'vendor' directory is NOT uploaded
+            api/vendor/*  # This ensures the 'vendor' directory is NOT uploaded
+            frontend/*  # This ensures the 'vendor' directory is NOT uploaded
+
+      # Step 3: Install Node.js 20.x
+      - name: 🔧 Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+
+      # Step 4: Install and build frontend (React) application
+      - name: 🚀 Install Frontend Dependencies and Build
+        working-directory: frontend  # Change into your React app directory
+        run: |
+          npm install
+          npm run build
+
+      
 
       # Step 6: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
@@ -98,21 +115,7 @@ jobs:
             .env  # You can also exclude .env if needed
             unzip.php  # Exclude unzip.php from API upload
 
-      # Step 8: Upload unzip.php to the root directory
-      - name: 🚀 Upload unzip.php to the root directory
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "./"  # Specify the path to unzip.php
-          server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
-          dangerous-clean-slate: false
-          exclude: |
-            vendor/*  # This ensures the 'vendor' directory is NOT uploaded
-            api/*  # This ensures the 'vendor' directory is NOT uploaded
-            api/vendor/*  # This ensures the 'vendor' directory is NOT uploaded
-            frontend/*  # This ensures the 'vendor' directory is NOT uploaded
+      
 
       # Step 9: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
