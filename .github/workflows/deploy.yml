@@ -17,16 +17,20 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history to ensure no issues with comparisons
 
+      # Step 2: Check for changes in composer.json
       - name: 🔍 Check for changes in composer.json
         id: check_composer_changes
         run: |
-          if git diff --quiet HEAD^ HEAD -- composer.json; then
-            echo "No changes in composer.json"
-            echo "composer_json_changed=false" >> $GITHUB_ENV
-          else
+          git fetch origin main
+          git diff --name-only origin/main HEAD > changed_files.txt
+          if grep -q "composer.json" changed_files.txt; then
             echo "composer.json has changed"
             echo "composer_json_changed=true" >> $GITHUB_ENV
+          else
+            echo "No changes in composer.json"
+            echo "composer_json_changed=false" >> $GITHUB_ENV
           fi
+
 
 
       # Step 3: Install PHP Dependencies if composer.json has changed
