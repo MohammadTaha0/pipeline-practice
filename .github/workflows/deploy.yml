@@ -85,8 +85,11 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "api/vendor.zip"  # The zipped vendor directory
-          server-dir: "${{ secrets.BASE_URL }}/api/vendor.zip"  # Ensure correct API path
+          local-dir: "api/"  # The zipped vendor directory
+          server-dir: "${{ secrets.BASE_URL }}/api/"  # Ensure correct API path
+          exclude: |
+            *
+            !vendor.zip
           dangerous-clean-slate: false
 
       # Step 9: Unzip Vendor Directory on Server
