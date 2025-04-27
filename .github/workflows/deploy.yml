@@ -24,7 +24,7 @@ jobs:
           git fetch origin
           if git diff --quiet origin/main -- composer.json; then
             echo "No changes in composer.json"
-            echo "composer_json_changed=true" >> $GITHUB_ENV
+            echo "composer_json_changed=false" >> $GITHUB_ENV
           else
             echo "composer.json has changed"
             echo "composer_json_changed=true" >> $GITHUB_ENV
@@ -37,15 +37,21 @@ jobs:
         run: |
           echo "composer.json has changed. Running composer install..."
           composer install --no-dev --optimize-autoloader
+      
+      # Step 4: Install Node.js 20.x
+      - name: 🔧 Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
 
-      # Step 4: Install and build frontend (React) application
+      # Step 5: Install and build frontend (React) application
       - name: 🚀 Install Frontend Dependencies and Build
         working-directory: frontend  # Change into your React app directory
         run: |
           npm install
           npm run build
 
-      # Step 5: Export ENV Variables
+      # Step 6: Export ENV Variables
       - name: 🛠 Export ENV Variables
         run: |
           if [ -f ".env" ]; then
@@ -59,7 +65,7 @@ jobs:
             echo ".env file not found!"
           fi
 
-      # Step 6: Deploy Frontend via FTP
+      # Step 7: Deploy Frontend via FTP
       - name: 🚀 Deploy Frontend via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -68,16 +74,18 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: "frontend/dist/"  # Ensure this ends with '/'
           server-dir: "${{ secrets.BASE_URL }}/"  # Ensure correct path for frontend
+          exclude: |
+            **/.env
           dangerous-clean-slate: false
 
-      # Step 7: Zip the vendor directory before upload (only if changes detected in composer.json)
+      # Step 8: Zip the vendor directory before upload (only if changes detected in composer.json)
       - name: 🗜️ Zip the Vendor Directory
         if: env.composer_json_changed == 'true'
         run: |
           cd api
           zip -r vendor.zip vendor  # Zip the vendor directory
 
-      # Step 8: Upload Vendor Directory (Zipped) (only if composer.json changes)
+      # Step 9: Upload Vendor Directory (Zipped) (only if composer.json changes)
       - name: 🚀 Upload Vendor Directory (Zipped)
         if: env.composer_json_changed == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -92,13 +100,13 @@ jobs:
             !vendor.zip
           dangerous-clean-slate: false
 
-      # Step 9: Unzip Vendor Directory on Server
+      # Step 10: Unzip Vendor Directory on Server
       - name: 🗜️ Unzip Vendor Directory on Server
         if: env.composer_json_changed == 'true'
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_HOST }} "cd ${{ secrets.BASE_URL }}/api && unzip -o vendor.zip && rm vendor.zip"
 
-      # Step 10: Upload API Code (excluding vendor)
+      # Step 11: Upload API Code (excluding vendor)
       - name: 🚀 Upload API Code (excluding vendor)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -108,4 +116,11 @@ jobs:
           local-dir: "api/"  # Ensure this ends with '/'
           server-dir: "${{ secrets.BASE_URL }}/api/"  # Ensure correct API path on server
           dangerous-clean-slate: false
-          exclude: "vendor/*"  # Exclude the vendor directory since it's already uploaded
+          exclude: |
+            vendor/*
+            .env
+      # Step 12: Run Migrations
+      - name: 🔄 Run Migrations
+        run: |
+          curl -X GET "${{ secrets.BASE_URL }}/api/run-migrations" -H "X-DEPLOY-TOKEN: ${{ secrets.DEPLOY_TOKEN }}"
+
