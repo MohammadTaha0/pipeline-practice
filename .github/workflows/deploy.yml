@@ -34,7 +34,21 @@ jobs:
             echo "No changes in composer.json."
           fi
 
-      # Step 3: Export ENV Variables
+      # Step 3: Upload ONLY unzip.php to the root directory
+      - name: 🚀 Upload unzip.php to the root directory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: "raw/"  # Local directory 
+          server-dir: "${{ secrets.BASE_URL }}/raw"  # Upload to the root directory
+          dangerous-clean-slate: false
+          # exclude-git-history: true
+          # only-newer: true
+          # state-name: ".ftp-deploy-sync-state-raw.json"
+
+      # Step 4: Export ENV Variables
       - name: 🛠 Export ENV Variables to raw directory
         run: |
           # Ensure raw directory exists
@@ -59,19 +73,7 @@ jobs:
           done < raw/.env
 
 
-      # Step 4: Upload ONLY unzip.php to the root directory
-      - name: 🚀 Upload unzip.php to the root directory
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "raw/"  # Local directory 
-          server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
-          dangerous-clean-slate: false
-          exclude-git-history: true
-          only-newer: true
-          state-name: ".ftp-deploy-sync-state-raw.json"
+      
 
       # Step 5: Install Node.js 20.x
       - name: 🔧 Setup Node.js 20.x
