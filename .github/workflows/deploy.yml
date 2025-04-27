@@ -54,21 +54,20 @@ jobs:
           if [ ! -f ".env" ]; then
             echo ".env file not found! Creating .env file..."
             touch .env  # Create an empty .env file
-          else
-            echo "Found .env file, reading variables..."
           fi
 
-          # Add DEPLOY_TOKEN to .env file if it's not already there
-          if ! grep -q "DEPLOY_TOKEN=" .env; then
-            echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" >> .env
-          fi
+          # Ensure DEPLOY_TOKEN is added to the .env file
+          echo "Adding DEPLOY_TOKEN to .env file..."
+          echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" >> .env
 
           # Export environment variables from .env to GitHub Actions
+          echo "Exporting environment variables from .env file..."
           while IFS='=' read -r key value; do
             if [[ ! "$key" =~ ^# && -n "$key" ]]; then
               echo "$key=$value" >> $GITHUB_ENV
             fi
           done < .env
+
 
 
       # Step 6: Deploy Frontend via FTP
@@ -109,6 +108,8 @@ jobs:
           local-dir: "./"  # Specify the path to unzip.php
           server-dir: "${{ secrets.BASE_URL }}/"  # Upload to the root directory
           dangerous-clean-slate: false
+          exclude: |
+            vendor/*  # This ensures the 'vendor' directory is NOT uploaded
 
       # Step 9: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
