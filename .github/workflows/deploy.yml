@@ -110,6 +110,9 @@ jobs:
           dangerous-clean-slate: false
           exclude: |
             vendor/*  # This ensures the 'vendor' directory is NOT uploaded
+            api/*  # This ensures the 'vendor' directory is NOT uploaded
+            api/vendor/*  # This ensures the 'vendor' directory is NOT uploaded
+            frontend/*  # This ensures the 'vendor' directory is NOT uploaded
 
       # Step 9: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
