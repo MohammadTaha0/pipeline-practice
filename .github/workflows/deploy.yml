@@ -42,24 +42,24 @@ jobs:
           
           # Create unzip.php in raw directory
           cat > raw/unzip.php << 'EOF'
-<?php
-// Simple unzip script with token authentication
-if (!isset($_SERVER['HTTP_X_DEPLOY_TOKEN']) || $_SERVER['HTTP_X_DEPLOY_TOKEN'] !== getenv('DEPLOY_TOKEN')) {
-    http_response_code(403);
-    echo "Unauthorized";
-    exit;
-}
+          <?php
+          // Simple unzip script with token authentication
+          if (!isset($_SERVER['HTTP_X_DEPLOY_TOKEN']) || $_SERVER['HTTP_X_DEPLOY_TOKEN'] !== getenv('DEPLOY_TOKEN')) {
+              http_response_code(403);
+              echo "Unauthorized";
+              exit;
+          }
 
-$zip = new ZipArchive;
-$res = $zip->open(__DIR__ . '/../api/vendor.zip');
-if ($res === TRUE) {
-    $zip->extractTo(__DIR__ . '/../api/');
-    $zip->close();
-    echo "Vendor directory extracted successfully";
-} else {
-    echo "Failed to extract vendor directory";
-}
-EOF
+          $zip = new ZipArchive;
+          $res = $zip->open(__DIR__ . '/../api/vendor.zip');
+          if ($res === TRUE) {
+              $zip->extractTo(__DIR__ . '/../api/');
+              $zip->close();
+              echo "Vendor directory extracted successfully";
+          } else {
+              echo "Failed to extract vendor directory";
+          }
+          EOF
 
           # Create .env file in raw directory with DEPLOY_TOKEN
           echo "DEPLOY_TOKEN=${{ secrets.DEPLOY_TOKEN }}" > raw/.env
