@@ -81,19 +81,34 @@ jobs:
             **/.env
           dangerous-clean-slate: false
 
-      # Step 8: Upload Vendor Directory (direct upload)
-      - name: 🚀 Upload Vendor Directory (direct upload)
+      # Step 8: Zip the vendor directory before upload (only if changes detected in composer.json)
+      - name: 🗜️ Zip the Vendor Directory
+        if: env.composer_json_changed == 'true'
+        run: |
+          cd api
+          zip -r vendor.zip vendor  # Zip the vendor directory
+
+      # Step 9: Upload Vendor Directory (Zipped) (only if composer.json changes)
+      - name: 🚀 Upload Vendor Directory (Zipped)
         if: env.composer_json_changed == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "api/vendor/"  # Directly upload the vendor directory
-          server-dir: "${{ secrets.BASE_URL }}/api/vendor/"  # Ensure correct API path
+          local-dir: "api/"  # The zipped vendor directory
+          server-dir: "${{ secrets.BASE_URL }}/api/"  # Ensure correct API path
           exclude: |
-            **/.env
+            *
+            !vendor.zip
           dangerous-clean-slate: false
+
+      # Step 9: Call unzip.php to unzip vendor.zip
+      - name: 🛠️ Unzip Vendor.zip by calling API
+        if: env.composer_json_changed == 'true'
+        run: |
+          curl https://${{ secrets.BASE_URL }}/unzip.php
+
 
       # Step 11: Upload API Code (excluding vendor)
       - name: 🚀 Upload API Code (excluding vendor)
