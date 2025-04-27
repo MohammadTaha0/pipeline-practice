@@ -17,25 +17,25 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history to ensure no issues with comparisons
 
-      # Step 2: Check for changes in composer.json
       - name: 🔍 Check for changes in composer.json
         id: check_composer_changes
         run: |
+          echo "Checking composer.json changes..."
           git fetch origin main
-          git diff --name-only origin/main HEAD > changed_files.txt
-          if grep -q "composer.json" changed_files.txt; then
-            echo "composer.json has changed"
+          LAST_COMMIT=$(git rev-parse HEAD)
+          PREV_COMMIT=$(git rev-parse HEAD^)
+          
+          if git diff --name-only "$PREV_COMMIT" "$LAST_COMMIT" | grep "composer.json"; then
             echo "composer_json_changed=true" >> $GITHUB_ENV
+            echo "composer.json has changed."
           else
-            echo "No changes in composer.json"
             echo "composer_json_changed=false" >> $GITHUB_ENV
+            echo "No changes in composer.json."
           fi
-
 
 
       # Step 3: Install PHP Dependencies if composer.json has changed
       - name: 🛠 Install PHP Dependencies
-        if: env.composer_json_changed == 'true'
         working-directory: api  # Change into your Laravel API directory
         run: |
           echo "composer.json has changed. Running composer install..."
